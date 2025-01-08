@@ -10,101 +10,151 @@ using System.Threading.Tasks;
 
 class Program
 {
+    // Set of blocked websites (loaded from files)
     static HashSet<string> blockedSites = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    static int requestCount = 0; // Request counter
+
+    // Counter to track the number of requests processed
+    static int requestCount = 0;
+
+    // Log file path for storing blocked URLs
     static readonly string logFilePath = $"blocked_urls_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+
+    // Proxy server and endpoint instances
+    static ProxyServer proxyServer;
+    static ExplicitProxyEndPoint explicitEndPoint;
+
     static async Task Main(string[] args)
     {
+        // Log memory usage at startup
         MemoryProfiler.LogMemoryUsage("Startup Memory Usage");
 
-        // Read blocked websites from the files
+        // Read blocked websites from the provided files
         string[] files = {
             "fakenews.txt",
             "nsfw.txt",
             "socialmedia.txt",
             "gambling.txt",
             "malware.txt"
-        }; // Add all file names here
-           // comment out any category to allow access
+        };
 
+        // Load blocked sites into a hash set
         blockedSites = ReadBlockedSitesFromFiles(files);
         MemoryProfiler.LogMemoryUsage("After Loading Blocklist");
 
-        // Create the proxy server
-        var proxyServer = new ProxyServer();
+        // Initialize proxy server instance
+        proxyServer = new ProxyServer();
+
+        // Hook cleanup actions to process exit and Ctrl+C events
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+        Console.CancelKeyPress += OnCancelKeyPress;
 
         try
         {
-            // Configure proxy settings
+            // Subscribe to the request processing event
             proxyServer.BeforeRequest += OnRequest;
 
-            // Add an explicit endpoint for the proxy to listen on port 8888
-            var explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, 8888, true);
+            // Set up explicit proxy endpoint on port 8888
+            explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, 8888, true);
 
-            // Enable SSL/TLS interception
+            // Handle HTTPS connections (optional SSL decryption)
             explicitEndPoint.BeforeTunnelConnectRequest += async (sender, e) =>
             {
                 if (IsBlockedUrl(e.HttpClient.Request.RequestUri.Host))
                 {
-                    e.DecryptSsl = true; // Intercept HTTPS traffic
+                    e.DecryptSsl = true; // Enable SSL decryption for blocked sites
                 }
                 await Task.CompletedTask;
             };
 
+            // Add the endpoint to the proxy server
             proxyServer.AddEndPoint(explicitEndPoint);
 
-            // Generate and trust a root certificate for HTTPS handling
+            // Generate and trust a root certificate for intercepting SSL traffic
             proxyServer.CertificateManager.CreateRootCertificate(true);
             proxyServer.CertificateManager.TrustRootCertificate(true);
 
             // Start the proxy server
             proxyServer.Start();
+
+            // Set Edge browser proxy to use the proxy server
             SetEdgeProxy("localhost:8888");
 
             Console.WriteLine("Web Filter Proxy started on http://localhost:8888");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
-
         }
         catch (Exception ex)
         {
             Console.WriteLine($"ERROR: Unable to start the proxy server. {ex.Message}");
-            Console.WriteLine("Check if the port is already in use or if the network configuration is valid.");
         }
         finally
         {
-            // Cleanup resources
-            ResetEdgeProxy();
-            proxyServer.Stop();
-            proxyServer.Dispose();
-            Console.WriteLine("Proxy server stopped and resources cleaned up.");
+            // Perform cleanup actions (stop proxy and reset settings)
+            CleanupResources();
         }
     }
 
-    // Event handler to intercept the HTTP request
+    // Event handler for process exit
+    private static void OnProcessExit(object sender, EventArgs e)
+    {
+        Console.WriteLine("Process exiting. Cleaning up resources...");
+        CleanupResources();
+    }
+
+    // Event handler for Ctrl+C key press
+    private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
+    {
+        Console.WriteLine("Cancel key pressed. Cleaning up resources...");
+        e.Cancel = true; // Prevent immediate termination
+        CleanupResources();
+        Environment.Exit(0);
+    }
+
+    // Centralized method to clean up resources
+    private static void CleanupResources()
+    {
+        try
+        {
+            if (proxyServer != null)
+            {
+                proxyServer.Stop();
+                proxyServer.Dispose();
+                Console.WriteLine("Proxy server stopped and disposed.");
+            }
+
+            // Reset Edge browser proxy settings
+            ResetEdgeProxy();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during cleanup: {ex.Message}");
+        }
+    }
+
+    // Event handler for processing requests
     private static async Task OnRequest(object sender, SessionEventArgs e)
     {
         var session = e.WebSession;
         var requestUrl = session.Request.Url;
 
-        // Increment the request counter in a thread-safe way
+        // Increment request count in a thread-safe manner
         Interlocked.Increment(ref requestCount);
 
-        // Block specific URLs or domains
+        // Check if the requested URL is blocked
         if (IsBlockedUrl(requestUrl))
         {
             Console.WriteLine($"Blocked: {requestUrl}");
-            e.Ok("<html><body><h1><center>Access to this website is blocked.</center></h1></body></html>");
 
-            // Log the blocked URL to the log file
+            // Respond with a custom blocked message
+            e.Ok("<html><body><h1><center>Access to this website is blocked.</center></h1></body></html>");
             LogBlockedUrl(requestUrl);
         }
         else
         {
-            await Task.CompletedTask; // Allow other requests
+            await Task.CompletedTask; // Allow other requests to proceed
         }
 
-        // Log memory usage after every 100 requests
+        // Log memory usage every 100 requests
         if (requestCount % 100 == 0)
         {
             Console.WriteLine($"Requests Handled: {requestCount}");
@@ -112,7 +162,7 @@ class Program
         }
     }
 
-    // Helper method to check if a URL should be blocked
+    // Check if a URL is in the blocked list
     private static bool IsBlockedUrl(string url)
     {
         foreach (var site in blockedSites)
@@ -125,7 +175,7 @@ class Program
         return false;
     }
 
-    // Method to log blocked URLs to a file
+    // Log blocked URLs to a file
     private static void LogBlockedUrl(string url)
     {
         try
@@ -139,10 +189,11 @@ class Program
         }
     }
 
-    // Method to read blocked sites from multiple files
+    // Load blocked sites from multiple files into a HashSet
     public static HashSet<string> ReadBlockedSitesFromFiles(string[] filePaths)
     {
         var sites = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var filePath in filePaths)
         {
             try
@@ -156,7 +207,6 @@ class Program
                             sites.Add(line.Trim());
                         }
                     }
-                    // Display total number of loaded blocked sites
                     Console.WriteLine($"Loaded {sites.Count} sites from {filePath}");
                 }
                 else
@@ -172,6 +222,7 @@ class Program
         return sites;
     }
 
+    // Configure Edge browser proxy settings
     public static void SetEdgeProxy(string proxyAddress)
     {
         string proxyKey = @"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
@@ -192,16 +243,13 @@ class Program
                 }
             }
         }
-        catch (UnauthorizedAccessException)
-        {
-            Console.WriteLine("ERROR: Insufficient permissions to modify the registry. Please run as administrator.");
-        }
         catch (Exception ex)
         {
             Console.WriteLine($"Unexpected error while modifying registry: {ex.Message}");
         }
     }
 
+    // Reset Edge browser proxy settings to default
     public static void ResetEdgeProxy()
     {
         string proxyKey = @"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
@@ -225,9 +273,9 @@ class Program
         }
     }
 
+    // Utility class for logging memory usage
     public static class MemoryProfiler
     {
-        // Get current memory usage
         public static void LogMemoryUsage(string label = "Memory Usage")
         {
             Process currentProcess = Process.GetCurrentProcess();

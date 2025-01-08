@@ -17,3 +17,4 @@ E:\contentfiltering\ProxyBlocker\bin\Debug\net9.0\BouncyCastle.Crypto.dll
 E:\contentfiltering\ProxyBlocker\bin\Debug\net9.0\Titanium.Web.Proxy.dll
 E:\contentfiltering\ProxyBlocker\obj\Debug\net9.0\ProxyBlocker.csproj.AssemblyReference.cache
 E:\contentfiltering\ProxyBlocker\obj\Debug\net9.0\ProxyBlo.634961FD.Up2Date
+E:\contentfiltering\ProxyBlocker\obj\Debug\net9.0\ProxyBlocker.sourcelink.json
