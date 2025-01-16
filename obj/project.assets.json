@@ -393,19 +393,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\DcryptR\\.nuget\\packages\\": {}
+    "C:\\Users\\91735\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\contentfiltering\\ProxyBlocker\\ProxyBlocker.csproj",
+      "projectUniqueName": "C:\\Users\\91735\\Downloads\\proxyblocker_new\\ProxyBlocker.csproj",
       "projectName": "ProxyBlocker",
-      "projectPath": "E:\\contentfiltering\\ProxyBlocker\\ProxyBlocker.csproj",
-      "packagesPath": "C:\\Users\\DcryptR\\.nuget\\packages\\",
-      "outputPath": "E:\\contentfiltering\\ProxyBlocker\\obj\\",
+      "projectPath": "C:\\Users\\91735\\Downloads\\proxyblocker_new\\ProxyBlocker.csproj",
+      "packagesPath": "C:\\Users\\91735\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\91735\\Downloads\\proxyblocker_new\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\DcryptR\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\91735\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"

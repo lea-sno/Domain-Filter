@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProxyBlocker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d09755e6cdef84efb88445fd51a0cfa7e7fb7706")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fc87f634301f13483021554d1c0dcd4ba92e9553")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProxyBlocker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProxyBlocker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
